@@ -45,11 +45,12 @@ def predict_t(samples):
 ###--- Density functions ---###
 
 def log_prior(u, K_inverse):
-    return # TODO: Return log p(u)
+    return -0.5 * u.T @ K_inverse @ u
 
 
 def log_continuous_likelihood(u, v, G):
-    return # TODO: Return observation likelihood p(v|u)
+    residual = v - G @ u
+    return -0.5 * residual.T @ residual
 
 
 def log_probit_likelihood(u, t, G):
@@ -81,7 +82,7 @@ def grw(log_target, u0, data, K, G, n_iters, beta):
     Inputs:
         log_target - log-target density
         u0 - initial sample
-        y - observed data
+        data - observed data
         K - prior covariance
         G - observation matrix
         n_iters - number of samples
@@ -93,25 +94,30 @@ def grw(log_target, u0, data, K, G, n_iters, beta):
     X = []
     acc = 0
     u_prev = u0
+    
 
     # Inverse computed before the for loop for speed
-    Kc = np.linalg.cholesky(K + 1e-6 * np.eye(N))
+    Kc = np.linalg.cholesky(K + 1e-6 * np.eye(len(u0)))
     Kc_inverse = np.linalg.inv(Kc)
-    K_inverse = None # TODO: compute the inverse of K using its Cholesky decomopsition
+    # TODO: compute the inverse of K using its Cholesky decomopsition
+    K_inverse = Kc_inverse.T @ Kc_inverse
 
     lt_prev = log_target(u_prev, data, K_inverse, G)
 
     for i in range(n_iters):
 
-        u_new = None # TODO: Propose new sample - use prior covariance, scaled by beta
+        # TODO: Propose new sample - use prior covariance, scaled by beta
+        u_new = u_prev + beta * (Kc @ np.random.randn(len(u0)))
 
         lt_new = log_target(u_new, data, K_inverse, G)
 
-        log_alpha = None # TODO: Calculate acceptance probability based on lt_prev, lt_new
+        # TODO: Calculate acceptance probability based on lt_prev, lt_new
+        log_alpha = lt_new - lt_prev
         log_u = np.log(np.random.random())
 
         # Accept/Reject
-        accept = None # TODO: Compare log_alpha and log_u to accept/reject sample (accept should be boolean)
+        # TODO: Compare log_alpha and log_u to accept/reject sample (accept should be boolean)
+        accept = log_u < log_alpha
         if accept:
             acc += 1
             X.append(u_new)
@@ -123,12 +129,12 @@ def grw(log_target, u0, data, K, G, n_iters, beta):
     return X, acc / n_iters
 
 
-def pcn(log_likelihood, u0, y, K, G, n_iters, beta):
+def pcn(log_likelihood, u0, data, K, G, n_iters, beta):
     """ pCN MCMC method for sampling from pdf defined by log_prior and log_likelihood.
     Inputs:
         log_likelihood - log-likelihood function
         u0 - initial sample
-        y - observed data
+        data - observed data
         K - prior covariance
         G - observation matrix
         n_iters - number of samples
@@ -141,19 +147,24 @@ def pcn(log_likelihood, u0, y, K, G, n_iters, beta):
     acc = 0
     u_prev = u0
 
-    ll_prev = log_likelihood(u_prev, y, G)
+    ll_prev = log_likelihood(u_prev, data, G)
+    Kc = np.linalg.cholesky(K + 1e-6 * np.eye(len(u0)))
 
     for i in range(n_iters):
 
-        u_new = None # TODO: Propose new sample using pCN proposal
+        # TODO: Propose new sample using pCN proposal
+        xi = Kc @ np.random.randn(len(u0))  # Draw from prior
+        u_new = np.sqrt(1 - beta**2) * u_prev + beta * xi
 
-        ll_new = log_likelihood(u_new, y, G)
+        ll_new = log_likelihood(u_new, data, G)
 
-        log_alpha = None # TODO: Calculate pCN acceptance probability
+        # TODO: Calculate pCN acceptance probability
+        log_alpha = ll_new - ll_prev
         log_u = np.log(np.random.random())
 
-        # Accept/Reject
-        accept = None # TODO: Compare log_alpha and log_u to accept/reject sample (accept should be boolean)
+        # Accept/reject step
+        # TODO: Compare log_alpha and log_u to accept/reject sample (accept should be boolean)
+        accept = log_u < log_alpha
         if accept:
             acc += 1
             X.append(u_new)
@@ -166,14 +177,17 @@ def pcn(log_likelihood, u0, y, K, G, n_iters, beta):
 
 
 ###--- Plotting ---###
-
-def plot_3D(u, x, y, title=None):
-    """Plot the latent variable field u given the list of x,y coordinates"""
-    fig = plt.figure()
+def plot_3D(u, x, y, title=None, zlim=None):
+    """Plot the latent variable field u given the list of x,y coordinates with optional z-limit"""
+    fig = plt.figure(figsize=(6, 6), dpi=300)
     ax = fig.add_subplot(projection='3d')
     ax.plot_trisurf(x, y, u, cmap='viridis', linewidth=0, antialiased=False)
+
+    if zlim:  # Apply z-limit if provided
+        ax.set_zlim(zlim[0], zlim[1])
+
     if title:  plt.title(title)
-    plt.show()
+    return plt
 
 
 def plot_2D(counts, xi, yi, title=None, colors='viridis'):
@@ -183,20 +197,24 @@ def plot_2D(counts, xi, yi, title=None, colors='viridis'):
         Z[(yi[i], xi[i])] = counts[i]
     my_cmap = copy.copy(cm.get_cmap(colors))
     my_cmap.set_under('k', alpha=0)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(6, 6), dpi=300)
     im = ax.imshow(Z, origin='lower', cmap=my_cmap, clim=[-0.1, np.max(counts)])
     fig.colorbar(im)
     if title:  plt.title(title)
-    plt.show()
+    return plt
 
 
-def plot_result(u, data, x, y, x_d, y_d, title=None):
+def plot_result(u, data, x, y, x_d, y_d, title=None, zlim=None):
     """Plot the latent variable field u with the observations,
         using the latent variable coordinate lists x,y and the
         data coordinate lists x_d, y_d"""
-    fig = plt.figure()
+    fig = plt.figure(figsize=(6, 6), dpi=300)
     ax = fig.add_subplot(projection='3d')
     ax.plot_trisurf(x, y, u, cmap='viridis', linewidth=0, antialiased=False)
     ax.scatter(x_d, y_d, data, marker='x', color='r')
+
+    if zlim:  # Apply z-limit if provided
+        ax.set_zlim(zlim[0], zlim[1])
+
     if title:  plt.title(title)
-    plt.show()
+    return plt

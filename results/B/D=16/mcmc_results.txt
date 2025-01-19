@@ -1,0 +1,6 @@
+MCMC Results
+===========================
+Mean Absolute Error (GRW-MH): 0.348120
+Mean Absolute Error (pCN): 0.328583
+Acceptance Rate (GRW-MH): 0.081800
+Acceptance Rate (pCN): 0.443400
