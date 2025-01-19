@@ -35,11 +35,11 @@ def get_G(N, idx):
 
 
 def probit(v):
-    return np.array([0 if x < 0 else 1 for x in v])
+    return np.array([0 if x <= 0 else 1 for x in v])
 
 
 def predict_t(samples):
-    return # TODO: Return p(t=1|samples)
+    return np.mean(norm.cdf(samples), axis=0)
 
 
 ###--- Density functions ---###
@@ -55,7 +55,7 @@ def log_continuous_likelihood(u, v, G):
 
 def log_probit_likelihood(u, t, G):
     phi = norm.cdf(G @ u)
-    return # TODO: Return likelihood p(t|u)
+    return np.sum(t * np.log(phi) + (1 - t) * np.log(1 - phi))
 
 
 def log_poisson_likelihood(u, c, G):
@@ -197,8 +197,8 @@ def plot_2D(counts, xi, yi, title=None, colors='viridis'):
         Z[(yi[i], xi[i])] = counts[i]
     my_cmap = copy.copy(cm.get_cmap(colors))
     my_cmap.set_under('k', alpha=0)
-    fig, ax = plt.subplots(figsize=(6, 6), dpi=300)
-    im = ax.imshow(Z, origin='lower', cmap=my_cmap, clim=[-0.1, np.max(counts)])
+    fig, ax = plt.subplots(figsize=(5,4), dpi=300)
+    im = ax.imshow(Z, origin='lower', cmap=my_cmap, clim=[-0.1, np.nanmax(counts)])
     fig.colorbar(im)
     if title:  plt.title(title)
     return plt
