@@ -1,3 +1,4 @@
+from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 from functions import *
@@ -22,19 +23,14 @@ N = Dx * Dy  # Total number of coordinates
 coords = [(x, y) for y in np.linspace(0,1,Dy) for x in np.linspace(0,1,Dx)]  # Coordinates for the inference grid
 
 # Define different true length-scale values
-# l_true_values = [0.1, 0.3, 0.5]
-l_true_values = [0.01, 0.05, 0.1, 0.3, 0.5, 0.7]
+l_true_values = [0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 2, 10]
 l_values = np.logspace(-2, 1, num=50)  # 50 values between 0.01 and 10 (log scale)
 
 # Dictionary to store averaged errors for each true l
 error_results = {l_true: np.zeros(len(l_values)) for l_true in l_true_values}
 
-for exp in range(num_experiments):
-    print(f"\n========== Running Full Experiment {exp+1}/{num_experiments} ==========\n")
-
-    for l_true in l_true_values:
-        print(f"\n--- Running experiments for true length-scale l = {l_true} (Experiment {exp+1}) ---\n")
-
+for exp in tqdm(range(num_experiments), desc="Experiments"):
+    for l_true in tqdm(l_true_values, desc="True l values", leave=False):
         errors = []  # Store average errors for each tested length-scale
 
         # Generate the true covariance matrix
@@ -56,9 +52,7 @@ for exp in range(num_experiments):
         t_true = probit(u_true)
 
         # Grid search over different length-scale values
-        for l in l_values:
-            print(f"Testing length-scale l = {l:.3f} (Experiment {exp+1})...")
-            
+        for l in tqdm(l_values, desc=f"Grid search (l_true={l_true})", leave=False):
             # Generate covariance matrix with new length-scale
             K = GaussianKernel(coords, l)
             Kc = np.linalg.cholesky(K + 1e-6 * np.eye(N))
@@ -77,8 +71,6 @@ for exp in range(num_experiments):
             # Store the error
             errors.append(mean_prediction_error)
 
-            print(f"Avg error for l = {l:.3f} (Experiment {exp+1}): {mean_prediction_error:.6f}")
-
         # Accumulate errors across experiments
         error_results[l_true] += np.array(errors)
 
@@ -96,7 +88,7 @@ with open(results_file, "w") as f:
         f.write("\n")
 
 # Generate separate plots for each l_true
-for l_true, errors in error_results.items():
+for l_true, errors in tqdm(error_results.items(), desc="Generating Plots"):
     inferred_l = l_values[np.argmin(errors)]  # Find the inferred length-scale
 
     plt.figure(figsize=(4,3), dpi=300)
@@ -113,7 +105,6 @@ for l_true, errors in error_results.items():
     plt.xscale("log")  # Log scale for better visualization
     plt.xlabel("Tested Length-Scale l")
     plt.ylabel("Mean Prediction Error")
-    # plt.title(f"Grid Search for l = {l_true} (Inferred l = {inferred_l:.3f})")
     plt.legend()
     plt.grid(True)
     
@@ -121,5 +112,3 @@ for l_true, errors in error_results.items():
     save_path = os.path.join(results_dir, f"lengthscale_vs_error_ltrue_{l_true}.png")
     plt.savefig(save_path, bbox_inches="tight")
     plt.close()
-    
-    print(f"Saved plot for l_true = {l_true} at {save_path}")
