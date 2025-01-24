@@ -51,8 +51,10 @@ sampled_u_pcn, acc_pcn = pcn(log_probit_likelihood, u0=u0, data=t_data, K=K, G=G
 
 ###--- Monte Carlo Estimation of Predictive Distribution ---###
 predicted_t_prob = predict_t(sampled_u_pcn)
+predicted_t = (predicted_t_prob >= 0.5).astype(int)
 
 ###--- Visualization ---###
+
 t_data_full = np.full(Dx*Dy, np.nan)  # Create Dx x Dy grid filled with NaNs
 for i, index in enumerate(idx):
     t_data_full[index] = t_data[i]
@@ -60,3 +62,13 @@ for i, index in enumerate(idx):
 plot_2D(t_true, xi, yi, title="True Class Assignments").savefig(os.path.join(results_dir, "true_classes.png"),bbox_inches='tight')
 plot_2D(t_data_full, xi, yi, title="Observed Class Assignment").savefig(os.path.join(results_dir, "subsampled_data.png"),bbox_inches='tight')
 plot_2D(predicted_t_prob, xi, yi, title="Predictive Probability Distribution").savefig(os.path.join(results_dir, "predictive_probs.png"),bbox_inches='tight')
+plot_2D(predicted_t, xi, yi, title="Predicted Class Assignments").savefig(os.path.join(results_dir, "thresholded_predictions.png"),bbox_inches='tight')
+
+mean_prediction_error = np.mean(predicted_t != t_true)
+
+# Save the result
+results_file = os.path.join(results_dir, "prediction_error.txt")
+with open(results_file, "w") as f:
+    f.write(f"Mean Prediction Error: {mean_prediction_error:.6f}\n")
+
+print(f"Mean Prediction Error: {mean_prediction_error:.6f}")

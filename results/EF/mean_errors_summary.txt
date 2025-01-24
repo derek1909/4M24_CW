@@ -1,0 +1,4 @@
+Mean Absolute Errors for different length-scales:
+l=0.01: 1.122570
+l=2.0: 1.331768
+l=100: 1.547463

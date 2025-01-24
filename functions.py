@@ -59,7 +59,9 @@ def log_probit_likelihood(u, t, G):
 
 
 def log_poisson_likelihood(u, c, G):
-    return # TODO: Return likelihood p(c|u)
+    Gu = G @ u
+    # Compute log-likelihood (ignoring log c! since it does not depend on u)    
+    return np.sum(c * Gu - np.exp(Gu))
 
 
 def log_continuous_target(u, y, K_inverse, G):
@@ -202,6 +204,20 @@ def plot_2D(counts, xi, yi, title=None, colors='viridis'):
     fig.colorbar(im)
     if title:  plt.title(title)
     return plt
+
+def plot_2D1(counts, xi, yi, title=None, colors='viridis'):
+    """Visualise count data given the index lists"""
+    Z = -np.ones((max(yi) + 1, max(xi) + 1))
+    for i in range(len(counts)):
+        Z[(yi[i], xi[i])] = counts[i]
+    my_cmap = copy.copy(cm.get_cmap(colors))
+    my_cmap.set_under('k', alpha=0)
+    fig, ax = plt.subplots(figsize=(5,4), dpi=300)
+    im = ax.imshow(Z, origin='lower', cmap=my_cmap, clim=[-0.1, 8])
+    fig.colorbar(im)
+    if title:  plt.title(title)
+    return plt
+
 
 
 def plot_result(u, data, x, y, x_d, y_d, title=None, zlim=None):

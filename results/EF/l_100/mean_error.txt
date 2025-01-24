@@ -1,0 +1,1 @@
+Mean Absolute Error for l=100: 1.547463
