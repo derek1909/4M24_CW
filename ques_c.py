@@ -4,7 +4,7 @@ from functions import *
 import os
 
 ###--- Data Generation ---###
-np.random.seed(3429)
+np.random.seed(3432)
 
 ### Set parameters
 Dx = 16

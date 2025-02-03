@@ -23,7 +23,7 @@ N = Dx * Dy  # Total number of coordinates
 coords = [(x, y) for y in np.linspace(0,1,Dy) for x in np.linspace(0,1,Dx)]  # Coordinates for the inference grid
 
 # Define different true length-scale values
-l_true_values = [0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 2, 10]
+l_true_values = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 1.0, 2, 5.0, 10]
 l_values = np.logspace(-2, 1, num=50)  # 50 values between 0.01 and 10 (log scale)
 
 # Dictionary to store averaged errors for each true l
@@ -107,7 +107,8 @@ for l_true, errors in tqdm(error_results.items(), desc="Generating Plots"):
     plt.ylabel("Mean Prediction Error")
     plt.legend()
     plt.grid(True)
-    
+    plt.ylim([0,0.5])  # Set y-axis limits with padding
+
     # Save the figure separately
     save_path = os.path.join(results_dir, f"lengthscale_vs_error_ltrue_{l_true}.png")
     plt.savefig(save_path, bbox_inches="tight")
